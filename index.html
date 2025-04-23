@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Sayfa Ayırıcı</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* Sayfa Arka Planı */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Başlık */
+        h2 {
+            text-align: center;
+            color: #333;
+            padding: 20px;
+            background-color: #4CAF50;
+            color: white;
+            margin: 0;
+        }
+
+        /* Sayfa İçeriği */
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        /* Input Alanları */
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        /* Buton */
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Responsive Tasarım */
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+                margin: 20px;
+            }
+        }
+
+        /* Mesaj ve Uyarılar */
+        .alert {
+            background-color: #f44336;
+            color: white;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h2>PDF Sayfa Ayırıcı</h2>
+    <div class="container">
+        <input type="file" id="pdfFile" accept="application/pdf">
+        <input type="text" id="pageRange" placeholder="Örn: 10-20">
+        <button onclick="extractPages()">Yeni PDF Olarak Kaydet</button>
+        <div class="alert" id="alertMessage">Lütfen bir PDF dosyası seçin ve sayfa aralığını girin!</div>
+    </div>
+
+    <script>
+        async function extractPages() {
+            const fileInput = document.getElementById('pdfFile');
+            const pageRange = document.getElementById('pageRange').value;
+            const alertMessage = document.getElementById('alertMessage');
+            
+            if (!fileInput.files.length || !pageRange) {
+                alertMessage.style.display = 'block';
+                return;
+            }
+
+            alertMessage.style.display = 'none'; // Uyarıyı gizle
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async function () {
+                const pdfData = new Uint8Array(reader.result);
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfData);
+                const [start, end] = pageRange.split('-').map(num => parseInt(num.trim(), 10));
+                
+                // Yeni bir PDF belgesi oluşturulacak
+                const newPdfDoc = await PDFLib.PDFDocument.create();
+                
+                // Belirtilen sayfa aralığını yeni PDF'e ekleme
+                for (let i = start - 1; i < end; i++) {
+                    const [copiedPage] = await newPdfDoc.copyPages(pdfDoc, [i]);
+                    newPdfDoc.addPage(copiedPage);
+                }
+
+                // PDF'i kaydetme
+                const pdfBytes = await newPdfDoc.save();
+                const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                saveAs(pdfBlob, "ExtractedPages.pdf");
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>
